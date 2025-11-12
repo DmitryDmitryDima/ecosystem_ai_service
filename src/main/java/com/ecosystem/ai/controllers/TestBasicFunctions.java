@@ -20,15 +20,41 @@ https://github.com/danvega/multiple-llms/tree/main/src/main/java/dev приме�
  */
 
 @RestController
-@RequestMapping("/test")
-public class TestChatController {
+@RequestMapping("/test/basic/")
+public class TestBasicFunctions {
 
     private final ChatClient chatClient;
 
 
-    public TestChatController(@Autowired ChatClient.Builder builder) {
+    public TestBasicFunctions(@Autowired ChatClient.Builder builder) {
 
         this.chatClient = builder.build();
+    }
+
+    @GetMapping("/simpleSystemMessage")
+    public Flux<String> simpleSystemMessage(@RequestParam String term){
+        String systemMessage = """
+                
+                You are a biology teacher.
+                You can ONLY discuss using SHORT answers:
+                - All about biology science
+                - All about terminology and classifications in biology
+                
+                You can't discuss something that not directly related to biology
+                
+              
+                If asked about anything else, respond "I can only help with biology-related questions"
+                
+                Positive example: what is Mitosis? Your answer: "Mitosis is the process of cell division that results in two genetically identical daughter cells from a single parent cell"
+                Negative example: what is Java OOP? Your answer: "I can only help with biology-related questions"
+                
+                
+                Response format: json {answer:<your answer>}
+                """;
+
+        return chatClient.prompt().system(systemMessage).user((promptUserSpec ->
+                promptUserSpec.text("What is {term}").param("term", term)
+                )).stream().content();
     }
 
 
@@ -61,7 +87,9 @@ public class TestChatController {
                 .chatResponse();
     }
 
-    @GetMapping("/prompt")
+
+    // создаем prompt шаблон, куда всатвляем пользовательские данные
+    @GetMapping("/promptTemplate")
     public Flux<String> promptTemplateTest(@RequestParam("composer") String composer){
 
         PromptTemplate template = PromptTemplate.builder()
