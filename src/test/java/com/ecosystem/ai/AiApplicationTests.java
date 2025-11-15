@@ -20,7 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 
 
-
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,7 +39,7 @@ class AiApplicationTests {
 	@Autowired
 	private ChatClient.Builder builder;
 
-	@Value("classpath:/docs/biology_test.pdf")
+	@Value("classpath:/docs/2198.pdf")
 	private Resource document;
 
 	@Test
@@ -60,12 +61,29 @@ class AiApplicationTests {
 	@Test
 	void searchInVector(){
 
+		List<Document> documents = vectorStore.similaritySearch("что такое стабилизирующий отбор");
+
+		documents.forEach(doc->{
+			System.out.println(doc);
+			System.out.println("Document--------------");
+
+		});
+
+		Instant now = Instant.now();
+
 		BiologyTeacherAnswer answer = builder.build().prompt().advisors(QuestionAnswerAdvisor.builder(vectorStore).build())
 
-				.user("какую болезнь изучал ивановский")
+				.user("что такое стабилизирующий отбор")
 				.call().entity(BiologyTeacherAnswer.class);
 
 		System.out.println(answer);
+		Instant after = Instant.now();
+
+		Duration duration = Duration.between(now, after);
+
+		System.out.println(duration.toSeconds());
+
+
 	}
 
 }
