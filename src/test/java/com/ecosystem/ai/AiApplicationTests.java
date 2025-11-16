@@ -14,6 +14,8 @@ import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,10 +52,43 @@ class AiApplicationTests {
 
 		var pdfReader = new PagePdfDocumentReader(document);
 		TextSplitter textSplitter = new TokenTextSplitter();
+
 		List<Document> documents = textSplitter.apply(pdfReader.get());
+
+
+		// пример добавления некоего id как обрабатываемому документу
+		// в будущей системе наиболее грамотным будет поиск по disk_file_id
+		/*
+
+		то есть некоторая сущность под названием "база знаний"
+		пользователь выбирает те файлы, которые он хочет включить в эту базу знаний
+		то есть база знаний - по сути список file id
+		при добавлении файла система проверяет, был ли файл ранее загружен в vector store
+		Если нет - при подготовке базы знаний будет происходить его анализ и загрузка
+
+		Количество баз знаний, а также максимальный размер хранилища будут ограничены, чтобы не допускать абьюза мощностей
+
+		 */
+		documents.forEach(el->{
+			el.getMetadata().put("file_id", "some_id");
+
+		});
 
 		vectorStore.accept(documents);
 
+
+
+
+	}
+
+	@Test
+	void searchInVectorStoreById(){
+		String id = "some_id";
+		List<Document> documents = vectorStore.similaritySearch(SearchRequest.builder()
+						.query("что такое стабилизирующий отбор")
+								.filterExpression(new FilterExpressionBuilder().eq("file_id", id).build())
+										.build());
+		documents.forEach(System.out::println);
 
 
 	}
@@ -62,6 +97,8 @@ class AiApplicationTests {
 	void searchInVector(){
 
 		List<Document> documents = vectorStore.similaritySearch("что такое стабилизирующий отбор");
+
+
 
 		documents.forEach(doc->{
 			System.out.println(doc);
