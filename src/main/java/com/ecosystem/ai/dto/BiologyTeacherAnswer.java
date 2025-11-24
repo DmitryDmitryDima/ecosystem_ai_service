@@ -1,4 +1,4 @@
-package com.ecosystem.ai.entities;
+package com.ecosystem.ai.dto;
 
 import java.util.List;
 

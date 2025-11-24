@@ -1,22 +1,23 @@
 package com.ecosystem.ai;
 
-import com.ecosystem.ai.entities.BiologyTeacherAnswer;
+import com.ecosystem.ai.dto.BiologyTeacherAnswer;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.embedding.EmbeddingResponse;
 
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
@@ -24,7 +25,6 @@ import org.springframework.core.io.Resource;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
@@ -33,15 +33,17 @@ class AiApplicationTests {
 
 
 	@Autowired
+	@Qualifier("ollamaEmbeddingModel")
 	private EmbeddingModel embeddingModel;
 
 	@Autowired
 	private VectorStore vectorStore;
 
 	@Autowired
-	private ChatClient.Builder builder;
+	@Qualifier("openAiChatClient")
+	private ChatClient chatClient;
 
-	@Value("classpath:/docs/2198.pdf")
+	@Value("classpath:/docs/biology_test.pdf")
 	private Resource document;
 
 	@Test
@@ -96,7 +98,7 @@ class AiApplicationTests {
 	@Test
 	void searchInVector(){
 
-		List<Document> documents = vectorStore.similaritySearch("что такое стабилизирующий отбор");
+		List<Document> documents = vectorStore.similaritySearch("Какую болезнь изучал Ивановский?");
 
 
 
@@ -108,9 +110,9 @@ class AiApplicationTests {
 
 		Instant now = Instant.now();
 
-		BiologyTeacherAnswer answer = builder.build().prompt().advisors(QuestionAnswerAdvisor.builder(vectorStore).build())
+		BiologyTeacherAnswer answer = chatClient.prompt().advisors(QuestionAnswerAdvisor.builder(vectorStore).build())
 
-				.user("что такое стабилизирующий отбор")
+				.user("какую болезнь изучал ивановский")
 				.call().entity(BiologyTeacherAnswer.class);
 
 		System.out.println(answer);
@@ -119,6 +121,63 @@ class AiApplicationTests {
 		Duration duration = Duration.between(now, after);
 
 		System.out.println(duration.toSeconds());
+
+
+	}
+
+	@Test
+	public void customChatClient(){
+
+	}
+
+
+
+	// если мы работаем с open api compatible endpoint'ом
+
+	@Test
+	public void fullyManualConfig(){
+
+
+		OpenAiApi openAiApiOpenRouter = OpenAiApi.builder()
+				.apiKey("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")
+				.baseUrl("https://openrouter.ai/api").build();
+
+		OpenAiChatModel chatModelOpenRouter = OpenAiChatModel.builder()
+				.openAiApi(openAiApiOpenRouter)
+				.defaultOptions(OpenAiChatOptions.builder()
+
+						.model("x-ai/grok-4.1-fast:free").build())
+
+				.build();
+
+		ChatClient preparedChatOpenRouter = ChatClient.builder(chatModelOpenRouter).build();
+
+
+
+		System.out.println(preparedChatOpenRouter.prompt().user("hello").call().content());
+
+
+
+
+		OpenAiApi openAiApiGithubModels = OpenAiApi.builder()
+				.apiKey("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")
+				.baseUrl("https://models.github.ai/inference").build();
+
+		OpenAiChatModel chatModelGitHubModels = OpenAiChatModel.builder()
+				.openAiApi(openAiApiGithubModels)
+				.defaultOptions(
+						OpenAiChatOptions.builder()
+
+								.model("openai/gpt-4.1-mini")
+								.build()
+				).build();
+
+		ChatClient preparedChatGithubModels = ChatClient.builder(chatModelGitHubModels).build();
+
+		System.out.println(preparedChatGithubModels.prompt().user("hello").call().content());
+
+
+
 
 
 	}
