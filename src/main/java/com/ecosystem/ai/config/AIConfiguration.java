@@ -19,11 +19,11 @@ import org.springframework.context.annotation.Configuration;
 public class AIConfiguration {
 
 
-    private final String OPEN_ROUTER_API_KEY = "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";
+    private final String OPEN_ROUTER_API_KEY = "open_router";
     private final String OPEN_ROUTER_MODEL_NAME = "x-ai/grok-4.1-fast:free";
 
 
-    private final String GITHUB_MODELS_API_KEY = "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";
+    private final String GITHUB_MODELS_API_KEY = "github";
     private final String GITHUB_MODELS_MODEL_NAME = "openai/gpt-4.1-mini";
 
 
