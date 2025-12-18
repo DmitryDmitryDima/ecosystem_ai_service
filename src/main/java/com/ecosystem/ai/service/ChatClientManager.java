@@ -29,7 +29,7 @@ public class ChatClientManager {
      */
     public <T> T executePrompt(String systemMessage, String userMessage, Class<T> answerFormat){
         // временно
-        return openRouterClient.prompt()
+        return githubModelsClient.prompt()
                 .system(systemMessage)
                 .user(userMessage)
                 .call()
