@@ -1,6 +1,9 @@
 package com.ecosystem.ai.config;
 
 import io.micrometer.observation.ObservationRegistry;
+import org.apache.logging.log4j.LogManager;
+
+import org.apache.logging.log4j.Logger;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingProperties;
@@ -14,59 +17,154 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.RestClient;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class AIConfiguration {
 
 
-    private final String OPEN_ROUTER_API_KEY = "open_router";
-    private final String OPEN_ROUTER_MODEL_NAME = "x-ai/grok-4.1-fast:free";
 
 
-    private final String GITHUB_MODELS_API_KEY = "github";
-    private final String GITHUB_MODELS_MODEL_NAME = "openai/gpt-4.1-mini";
+
+    private final String vseLLMbase = "https://api.vsellm.ru";
+    private final String vseLLMModel = "deepseek/deepseek-v3.2";
+
+
+
+
+
 
 
 
 
     @Bean
-    public ChatClient openRouterChatClient(){
-        OpenAiApi openAiApiOpenRouter = OpenAiApi.builder()
-                .apiKey(OPEN_ROUTER_API_KEY)
-                .baseUrl("https://openrouter.ai/api").build();
+    public ChatClient vseLLMChatClient(){
+        final RestClient.Builder builder = RestClient.builder()
+                .requestInterceptor(new ClientLoggerRequestInterceptor());
 
-        OpenAiChatModel chatModelOpenRouter = OpenAiChatModel.builder()
-                .openAiApi(openAiApiOpenRouter)
-                .defaultOptions(OpenAiChatOptions.builder()
 
-                        .model(OPEN_ROUTER_MODEL_NAME).build())
 
+        String apiKey = System.getenv("VSELLM_KEY");
+        System.out.println(apiKey);
+
+        OpenAiApi openAiApi = OpenAiApi.builder()
+                .apiKey(apiKey)
+                .baseUrl(vseLLMbase)
+                .restClientBuilder(builder)
                 .build();
 
-        return ChatClient.builder(chatModelOpenRouter).build();
-    }
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(OpenAiChatOptions.builder().model(vseLLMModel).build())
+                .build();
 
-    @Bean
-    public ChatClient githubModelsChatClient(){
-        OpenAiApi openAiApiGithubModels = OpenAiApi.builder()
-                .apiKey(GITHUB_MODELS_API_KEY)
-                .baseUrl("https://models.github.ai/inference").build();
-
-        OpenAiChatModel chatModelGitHubModels = OpenAiChatModel.builder()
-                .openAiApi(openAiApiGithubModels)
-                .defaultOptions(
-                        OpenAiChatOptions.builder()
-
-                                .model(GITHUB_MODELS_MODEL_NAME)
-                                .build()
-                ).build();
-
-        return ChatClient.builder(chatModelGitHubModels).build();
+        return ChatClient.builder(chatModel).build();
     }
 
 
+    public static class ClientLoggerRequestInterceptor implements ClientHttpRequestInterceptor
+    {
+        private static final Logger log = LogManager.getLogger(ClientLoggerRequestInterceptor.class);
+
+        @Override
+        public ClientHttpResponse intercept(HttpRequest request, byte[] body,
+                                            ClientHttpRequestExecution execution) throws IOException
+        {
+            logRequest(request, body);
+            var response = execution.execute(request, body);
+            return logResponse(request, response);
+        }
+
+        private void logRequest(HttpRequest request, byte[] body)
+        {
+            log.info("Request: {} {}", request.getMethod(), request.getURI());
+            log.debug(String.valueOf(request.getHeaders()));
+            if (body != null && body.length > 0)
+            {
+                log.info("Request body: {}", new String(body, StandardCharsets.UTF_8));
+            }
+        }
+
+        private ClientHttpResponse logResponse(HttpRequest request,
+                                               ClientHttpResponse response) throws IOException
+        {
+            log.info("Response status: {}", response.getStatusCode());
+            log.debug(String.valueOf(response.getHeaders()));
+
+            byte[] responseBody = response.getBody().readAllBytes();
+            if (responseBody.length > 0)
+            {
+                log.info("Response body: {}",
+                        new String(responseBody, StandardCharsets.UTF_8));
+            }
+
+            // Return wrapped response to allow reading the body again
+            return new BufferingClientHttpResponseWrapper(response, responseBody);
+        }
+    }
+    private static class BufferingClientHttpResponseWrapper implements ClientHttpResponse
+    {
+        private final ClientHttpResponse response;
+        private final byte[] body;
+
+        public BufferingClientHttpResponseWrapper(ClientHttpResponse response,
+                                                  byte[] body)
+        {
+            this.response = response;
+            this.body = body;
+        }
+
+        @Override
+        public InputStream getBody()
+        {
+            return new ByteArrayInputStream(body);
+        }
+
+        // Delegate other methods to wrapped response
+        @Override
+        public HttpStatusCode getStatusCode() throws IOException
+        {
+            return response.getStatusCode();
+        }
+
+        @Override
+        public HttpHeaders getHeaders()
+        {
+            return response.getHeaders();
+        }
+
+        @Override
+        public void close()
+        {
+            response.close();
+        }
+
+        @Override
+        public String getStatusText() throws IOException
+        {
+            return response.getStatusText();
+        }
+    }
 
 
+
+
+
+
+    /*
+    пример настройки ollama embedding модели
+     */
 
 
     @Bean

@@ -37,10 +37,3 @@ server:
 
 
 
-open-router:
-  api:
-    key: open_router_api_key
-
-github_models:
-  api:
-    key: github_models_api_key
