@@ -5,20 +5,13 @@ spring:
   ai:
 
 
-    model:
-      chat: none
-      embedding: false
 
-    vectorstore:
-      mariadb:
-        initialize-schema: true
+
+
     openai:
       api-key: _
 
-  datasource:
-    url: jdbc:mariadb://localhost:3306/sys
-    username: root
-    password: 12345678
+
 
 
 server:

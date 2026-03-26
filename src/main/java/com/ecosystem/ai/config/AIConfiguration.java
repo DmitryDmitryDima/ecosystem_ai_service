@@ -5,16 +5,11 @@ import org.apache.logging.log4j.LogManager;
 
 import org.apache.logging.log4j.Logger;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.document.MetadataMode;
-import org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingProperties;
-import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.OllamaEmbeddingModel;
-import org.springframework.ai.ollama.api.OllamaApi;
-import org.springframework.ai.ollama.api.OllamaOptions;
-import org.springframework.ai.ollama.management.ModelManagementOptions;
+
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -66,13 +61,22 @@ public class AIConfiguration {
 
         OpenAiChatModel chatModel = OpenAiChatModel.builder()
                 .openAiApi(openAiApi)
-                .defaultOptions(OpenAiChatOptions.builder().model(vseLLMModel).build())
+                .defaultOptions(OpenAiChatOptions.builder()
+                        .responseFormat(ResponseFormat.builder()
+                                .type(ResponseFormat.Type.JSON_OBJECT)
+                                .build())
+
+                        .model(vseLLMModel).build())
                 .build();
 
         return ChatClient.builder(chatModel).build();
     }
 
 
+
+    /*
+    пример interceptor'а
+     */
     public static class ClientLoggerRequestInterceptor implements ClientHttpRequestInterceptor
     {
         private static final Logger log = LogManager.getLogger(ClientLoggerRequestInterceptor.class);
@@ -166,14 +170,16 @@ public class AIConfiguration {
     пример настройки ollama embedding модели
      */
 
-
+    /*
     @Bean
     public OllamaApi ollamaApi(){
         return OllamaApi.builder().build();
     }
 
+     */
 
 
+    /*
     @Bean
     public OllamaEmbeddingModel ollamaEmbeddingModel(OllamaApi ollamaApi){
 
@@ -186,6 +192,8 @@ public class AIConfiguration {
         return new OllamaEmbeddingModel(ollamaApi, ollamaOptions, ObservationRegistry.NOOP, ModelManagementOptions.builder()
                 .build() );
     }
+
+     */
 
 
 }
