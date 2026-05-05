@@ -1,6 +1,6 @@
 package com.ecosystem.ai.config;
 
-import io.micrometer.observation.ObservationRegistry;
+
 import org.apache.logging.log4j.LogManager;
 
 import org.apache.logging.log4j.Logger;
@@ -10,6 +10,8 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.api.ResponseFormat;
+
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -50,14 +52,23 @@ public class AIConfiguration {
 
 
 
+
+
+
         String apiKey = System.getenv("VSELLM_KEY");
         System.out.println(apiKey);
+
+
+
+
 
         OpenAiApi openAiApi = OpenAiApi.builder()
                 .apiKey(apiKey)
                 .baseUrl(vseLLMbase)
                 .restClientBuilder(builder)
                 .build();
+
+
 
         OpenAiChatModel chatModel = OpenAiChatModel.builder()
                 .openAiApi(openAiApi)
